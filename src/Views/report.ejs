@@ -1,0 +1,272 @@
+<!-- Bookdetail -->
+<div class="container bookingform" id="bookingform" >
+    
+    <span id="message"></span>
+    <div class="card">
+        <form>            
+            <div class="card-header">            
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="row">                            
+                            <div class="col">
+                                <label class="form-label">Từ Ngày</label>                                
+                            </div>
+                            <div class="col">
+                                <label class="form-label">Đến Ngày</label>                                                        
+                            </div>
+                            
+                            <div class="col">
+
+                            </div>
+                            <div class="col">
+                                <label class="form-label"><h4>Tổng tiền</h4></label>                                                        
+                            </div>
+                        </div>
+                        <div class="row">                          
+                            
+                            <div class="col">
+                                <input type="date" class="form-control checkdatefrom"  id="checkdatefrom" name="checkdatefrom" required>
+                            </div>
+                            <div class="col">
+                                <input type="date" class="form-control checkdateto"  id="checkdateto" name="checkdateto" required>
+                            </div>
+                            
+                            <div class="col">
+                                <button type="button" id="search" class="btn btn-success search">Tìm kiếm</button>
+                            </div>
+                            <div class="col">
+                                <input type="text" class="form-control totalmoney"  id="totalmoney" name="totalmoney" readonly>
+                            </div>
+                        </div>                 
+                    </div>
+                </div>                
+            </div>     
+        </form> 
+        <div class="card-body ">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col">STT</th>                            
+                            <th scope="col">Hình Thức</th>
+                            <th scope="col">Ngày Thuê</th>
+                            <th scope="col">Ngày Trả</th>
+                            <th scope="col">Thanh toán</th>
+                            <th scope="col">Thành tiền (VND)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="card-text pages row justify-content-center"  id="pages">            
+                </div>
+            </div>
+        </div>       
+    </div>
+</div>
+
+
+
+<script>
+    var rowInPage = 10;
+    var lastPage = 1;
+    var pages = 1;
+    const statusBook = ["CHUATHANHTOAN", "DATHANHTOAN"]
+    const statusButton = ["No", "Success"]
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+    
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/admin/login")
+    }
+    var token = "";
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+    const displaypages = (pages, current, lastPage) =>{
+        var firstPage = 1;
+        var bodyPages = ``;
+        if(pages > 0) { 
+            bodyPages += `
+            <div class="justify-content-center">
+            <nav class="mx-auto justify-content-center">
+            <ul class="pagination justify-content-center" style="margin-top: 2rem;">`;
+            if(current === 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>                
+                </li>`;
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>
+                </li>`
+            } 
+            var i = (Number(current) > 3 ? Number(current) - 2 : 1) 
+  
+            if(i !== 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link" >...</button>
+                </li>`
+            } 
+            for(; i <= (Number(current) + 2) && i <= pages; i++) { 
+            
+                if(i == current) { 
+                    bodyPages += `
+                    <li class="page-item active">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>                    
+                    </li>`;
+                } else { 
+                    bodyPages += `
+                    <li class="page-item">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>
+                    </li>`
+                } 
+                if (i == Number(current) + 2 && i < pages) { 
+                    bodyPages += `
+                    <li class="page-item disabled">
+                        <button class="page-link" >...</button>
+                    </li>`
+                } 
+            }
+        
+            if(current === pages) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+lastPage+`">Cuối</button>                
+                </li>`
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+pages+`">Cuối</button>                
+                </li>`
+            }
+            bodyPages += `
+                </ul>
+            </nav>
+            </div>`
+        } 
+        document.querySelector('#pages').innerHTML = bodyPages;
+    }
+    
+    const displayBook = (rowInPage, _stt, books) => {
+        var html =``;        
+        for(var count = 0; count < rowInPage; count++)
+            {                            
+                let bookRow = books[count];
+                let money = (parseInt(bookRow.totalmoney)).toLocaleString();
+                _stt++
+                html += `
+                    <tr>
+                        <td>`+ _stt +`</td>
+                       
+                        <td>`+bookRow.paymentname+`</td>
+                        <td>`+bookRow.checkindate+`</td>
+                        <td>`+bookRow.checkoutdate+`</td>`;
+                        if(bookRow.statusBook === statusBook[0]) {
+                            html += `<td class="text-center"><label class=" btn btn-warning">Chưa</label></td>`;
+                        } if(bookRow.statusBook === statusBook[1]) {
+                            html += `<td class="text-center" ><label class="btn  btn-success">Rồi</label></td>`;
+                        }
+                        html += `                           
+                        <td style="text-align: right;">`+money+`</td>
+                            <td>
+                                <button type="button" class="btn btn-info  editbook" data-id="`+bookRow.id+`">
+                                    Xem
+                                </button>                                    
+                            </td>
+                            </tr>
+                            `;
+            }
+        document.querySelector('#dataTable tbody').innerHTML = html;   
+                 
+    }
+   
+
+
+    $(document).ready( function(){   
+
+        if(user.username !== "admin") {            
+            window.location.assign('/staff/login')
+        }
+        
+        $(document).on('click', '.search', function(){  
+            let checkdatefrom = document.getElementById("checkdatefrom").value;
+            let checkdateto = document.getElementById("checkdateto").value; 
+            
+            
+            if(checkdatefrom && checkdateto) {
+                $.ajax({
+                url: `/report/admin/${checkdatefrom}/${checkdateto}`,
+                headers: {
+                    'Authorization':token
+                },
+                method: viewMode[0],
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    
+
+                    
+                    if(data.book.length > 0 && data.success) {
+                        rowInPage = data.rowInPage
+                        const totalmoney = (parseInt(data.totalmoney)).toLocaleString();
+                        $("#totalmoney").val(totalmoney + " VND")
+                        pages = Math.ceil(data.book.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.book.length/rowInPage)
+                        const _stt = 0;
+                        let row = data.book.length;
+                        if(row > rowInPage) {
+                            row = rowInPage
+                        }
+
+                        displaypages(pages, current, lastPage);
+                        displayBook(row, _stt, data.book)
+                    } else {
+                        alert("Dữ liệu tìm kiếm không có. Vui lòng kiểm tra lại")
+                    }
+                }
+                })
+            } else {
+                alert("Vui lòng nhập đầy đủ ngày Báo cáo");
+            }          
+           });
+
+        $(document).on('click', '.pagesindex', function(){
+            var id = $(this).data('id');
+            id = parseInt(id);
+            $.ajax({
+                url: `/report/page/${id-1}0/${rowInPage}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    
+
+                    let _stt = id-1 + "" + 0;
+                    _stt = parseInt(_stt)
+
+                    displaypages(pages, id, lastPage);
+                    const row = parseInt(data.book.length);
+                    displayBook(row, _stt, data.book)
+                }
+            })
+        });
+    
+        $(document).on('click', '.editbook', function(){
+            
+            var id = $(this).data('id');
+            window.open(`/invoice/${id}`)
+        });
+    
+    });
+
+    
+    
+    </script>

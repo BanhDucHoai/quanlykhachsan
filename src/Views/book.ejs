@@ -1,0 +1,638 @@
+<!-- Book -->
+
+<div class="container bookform" id="bookform">
+    <h1> <% title %></h1>
+    <div class="card row">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-3">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Tìm kiếm"/>
+                </div>
+                <div class="col-2">
+                    <button type="button" id="search" class="btn btn-success   search">Tìm kiếm</button>
+                </div>                                             
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col">STT</th>
+                            <th scope="col">Thanh toán</th>
+                            <th scope="col">Ngày Thuê</th>
+                            <th scope="col">Ngày Trả</th>
+                            <th scope="col">Thanh Toán</th>
+                            <th scope="col">Tổng tiền</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="card-text pages row justify-content-center"  id="pages">
+            
+                </div>
+            </div>
+            
+        </div>
+        
+        
+    </div>
+    
+    <!-- pagination -->
+  
+</div>
+
+<!-- Bookdetail -->
+<div class="container bookdetailform" id="bookdetailform" >
+    <h1 class="mt-4 mb-4 text-center text-primary"><b>Phiếu thuê phòng chi tiết</b>
+    </h1>
+    <div class="card">
+        <form id="bookformdetail" class="bookformdetail">
+            <div class="card-header"> 
+                <div class="row">
+                    <div class="col">
+                        <label class="form-label"><h5>Hình thức thanh toán</h5></label>
+                    </div>
+                    <div class="col">
+                        <label class="form-label"><h5>Tổng tiền</h5></label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <input type="text" class="form-control paymentname"  id="paymentname" name="paymentname" readonly>
+                    </div>
+                    <div class="col">
+                        <input type="text" class="form-control totalmoney"  id="totalmoney" name="totalmoney" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row tablecustomer" id="tablecustomer">                                         
+                </div>
+                <div class="row tableroom" id="tableroom">                
+                </div>
+                
+                <div class="row tableroomservice" id="tableroomservice"> 
+                                   
+                </div> 
+                               
+            </div>
+            <div class="row">
+                <input type="text" name="roomid" id="roomid" class="roomid" hidden>
+                <input type="text" name="paymentid" id="paymentid" class="paymentid" hidden>
+                <input type="text" name="checkoutdate" id="checkoutdate" class="checkoutdate" hidden>
+                <input type="text" name="checkindate" id="checkindate" class="checkindate" hidden>
+                <input type="text" name="bookid" id="bookid" class="bookid" hidden>
+            </div>
+                        
+        </form>        
+    </div>
+</div>
+
+
+<script>
+    var rowInPage = 10;
+    const statusBook = ["CHUATHANHTOAN", "DATHANHTOAN"]
+    const statusButton = ["No", "Success"]
+    
+    var totalRoom = 0;
+    var totalRoomService =0;
+    var rooms = [];
+    var customers;   
+    var customerDetails = [];
+    var book; 
+    var roomServices = [];
+    var roomServiceDetails = [];
+
+    var payments = ``;
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+
+    var lastPage = 1;
+    var pages = 1;
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/admin/login")
+    }
+    var token = "";
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+    const headerCustomer = `
+                <div class="col">
+                    <h4>Khách hàng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="bookdetaildata">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên</th>
+                                    <th scope="col">SDT</th>
+                                    <th scope="col">CCCD</th>
+                                    <th scope="col">Loại khách</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+    var bodyCustomer =``;
+
+    const footerCustomer = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+    const headerRoom = `
+                <div class="col">
+                    <h4>Thông tin phòng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="roomdetail">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tên Phòng</th>                                    
+                                    <th scope="col">Ngày Thuê/ Trả</th>                                 
+                                    <th scope="col">Tổng ngày thuê (>8 giờ = 1 ngày)</th>
+                                    <th scope="col">Đơn giá/ngày</th>
+                                    <th scope="col">Đơn giá/giờ</th>
+                                    <th scope="col">Tổng tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+    var bodyRoom =``;
+
+    const footerRoom = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+
+    const headerRoomService =`
+                <div class="col">
+                    <h4>Dịch vụ phòng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="serviceroom_data">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên Dịch vụ</th>
+                                    <th scope="col">Số lượng</th>
+                                    <th scope="col">Đơn giá</th>
+                                    <th scope="col">Total</th>                                    
+                                </tr>
+                            </thead>
+                            `
+    
+    var bodyRoomService = ``;
+    const footerRoomService = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+    const displaypages = (pages, current, lastPage) =>{
+        var firstPage = 1;
+        var bodyPages = ``;
+        if(pages > 0) { 
+            bodyPages += `
+            <div class="justify-content-center">
+            <nav class="mx-auto justify-content-center">
+            <ul class="pagination justify-content-center" style="margin-top: 2rem;">`;
+            if(current === 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>                
+                </li>`;
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>
+                </li>`
+            } 
+            var i = (Number(current) > 3 ? Number(current) - 2 : 1) 
+  
+            if(i !== 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link" >...</button>
+                </li>`
+            } 
+            for(; i <= (Number(current) + 2) && i <= pages; i++) { 
+            
+                if(i == current) { 
+                    bodyPages += `
+                    <li class="page-item active">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>                    
+                    </li>`;
+                } else { 
+                    bodyPages += `
+                    <li class="page-item">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>
+                    </li>`
+                } 
+                if (i == Number(current) + 2 && i < pages) { 
+                    bodyPages += `
+                    <li class="page-item disabled">
+                        <button class="page-link" >...</button>
+                    </li>`
+                } 
+            }
+        
+            if(current === pages) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+lastPage+`">Cuối</button>                
+                </li>`
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+pages+`">Cuối</button>                
+                </li>`
+            }
+            bodyPages += `
+                </ul>
+            </nav>
+            </div>`
+        } 
+        document.querySelector('#pages').innerHTML = bodyPages;
+    }
+    
+    const displayRoomServiceDetail = () => {
+        if(bodyRoomService.length > 0){
+            document.querySelector('#tableroomservice').innerHTML = headerRoomService + bodyRoomService + footerRoomService;
+        }   else {
+            document.querySelector('#tableroomservice').innerHTML = '';
+        }
+    }
+    
+    const displayCustomerDetail = () => {
+        if(bodyCustomer.length > 0){
+            document.querySelector('#tablecustomer').innerHTML = headerCustomer + bodyCustomer + footerCustomer;
+        }   else {
+            document.querySelector('#tablecustomer').innerHTML = '';
+        }
+    }
+    
+    const displayRoomDetail = () => {
+        if(bodyRoom.length > 0){
+            document.querySelector('#tableroom').innerHTML = headerRoom + bodyRoom + footerRoom;
+        }   else {
+            document.querySelector('#tableroom').innerHTML = '';
+        }
+    }
+
+    const bodyRoomServicesDetail = () =>{
+
+        this.bodyRoomService = "";
+
+        var totalmoney = 0;
+        this.bodyRoomService = ``;
+        if(this.roomServiceDetails && this.roomServiceDetails.length>0){
+            
+            for(let j = 0; j < this.roomServiceDetails.length; j++){
+
+                for(let i = 0 ; i < this.roomServices.length ; i++){
+
+                    if(this.roomServiceDetails[j].id === this.roomServices[i].id) {
+                        let roomservice = this.roomServices[i];
+                        totalmoney += parseInt(roomservice.price) * parseInt(roomServiceDetails[j].quantity);
+                        this.bodyRoomService += `
+                                    <tr>
+                                        <td>${parseInt(j+1)}<input id="roomserviceid" name="roomserviceid" value="${roomservice.id}" hidden></td>
+                                        <td>${roomservice.roomservicename}</td>
+                                        <td>${roomServiceDetails[j].quantity}<input id="quantityTemp${roomservice.id}" name="quantityTemp" value="${roomServiceDetails[j].quantity}" hidden></td>
+                                        <td>${(roomservice.price).toLocaleString(undefined)}</td>
+                                        <td>${(parseInt(roomservice.price) * parseInt(roomServiceDetails[j].quantity)).toLocaleString(undefined)}</td> 
+                                    </tr>
+                                `;
+                                
+                    }
+                }            
+                
+            }
+            this.bodyRoomService += `
+                    <tr>
+                        <td></td>
+                        <td>Tổng tiền</td>
+                        <td></td>
+                        <td></td>
+                        <td>${(totalmoney).toLocaleString(undefined)}</td>
+                    </tr>
+                `;
+            
+        }
+        totalRoomService = totalmoney;
+
+        displayRoomServiceDetail();
+        displaytotalBook();
+        
+        
+    }
+    
+    const displaytotalBook = () => {
+        $("#totalmoney").val(`${totalRoom + totalRoomService}`);
+    }
+
+    const bodyRoomDetail = () =>{
+        
+        this.bodyRoom = "";
+        const checkindate = document.getElementById('checkindate').value;
+        const checkoutdate = document.getElementById('checkoutdate').value;
+        const roominputid = document.getElementById('roomid').value;
+
+        var hour = 0;
+        var tempday = 0;
+        let date1 = new Date(checkindate);
+        let date2 = new Date(checkoutdate); 
+
+        let diffInMs = date2.getTime() - date1.getTime();
+
+        let diffInHours = diffInMs / (1000  * 60 * 60);
+
+        var days =  diffInHours / 24;
+
+        hour = parseInt(Math.ceil(diffInHours % 24));
+        const tempHour = hour;
+
+        tempday = Math.round(days);
+        const tempdays = Math.round(days);
+            // nếu thời gian giờ > 8 tiếng thì tính 1 ngày
+        if(hour > 8) {
+            tempday++;
+            hour = 0;
+        }        
+        
+        if (rooms && rooms.length >0 ) {
+            for(let i =0; i< rooms.length ; i++) {
+                if(roominputid === rooms[i].id + "") {
+                    var temproom = rooms[i];
+                    totalRoom =  Math.round( parseInt(tempday) * rooms[i].price  + parseInt(hour)*rooms[i].price/10);
+                    this.bodyRoom += `
+                        <tr>
+                            <td>${rooms[i].roomname}</td>
+                                        
+                            <td>${checkindate}     /     ${checkoutdate}</td>
+                            
+                            <td>${tempdays} Day ${tempHour} hours</td>
+                            
+                            <td>${((rooms[i].price)).toLocaleString(undefined)}</td>
+                            <td>${(rooms[i].price/10).toLocaleString(undefined)}</td>
+                            <td>${(totalRoom).toLocaleString(undefined)}</td>                             
+                            
+                        </tr>                            
+                    `;
+                }
+            }
+
+        }
+        displayRoomDetail();
+        displaytotalBook();
+    }
+
+    const bodyCustomerDetail = () =>{
+
+        this.bodyCustomer = "";
+
+        for(let j = 0; j < this.customerDetails.length; j++){
+            for(let i = 0 ; i < this.customers.length ; i++){
+
+                if(this.customerDetails[j].id === this.customers[i].id) {
+                    let customer = this.customers[i];
+                    this.bodyCustomer += `
+                                        <tr>
+                                            <td >${parseInt(j+1)}
+                                                <input id="customerid" name="customerid" value="${customer.id}" hidden>
+                                            </td>
+                                            <td>${customer.fullname}</td>
+                                            <td>${customer.citizenIdentityCard}</td>
+                                            <td>${customer.customertypename}
+                                            </td> 
+                                        </tr>
+                                    `;
+                                
+                }
+            }
+                
+        }
+        displayCustomerDetail();
+        
+    }
+
+    const displayBook = (rowInPage, _stt, books) => {
+        var html =``;
+ 
+        for(var count = 0; count < rowInPage; count++)
+            {                
+                        
+                let bookRow = books[count];
+                let totalmoney = parseInt((bookRow.totalmoney)).toLocaleString(undefined)
+                _stt++
+                html += `
+                    <tr>
+                        <td>`+ _stt +`</td>                        
+                        <td>`+bookRow.paymentname+`</td>
+                        <td>`+bookRow.checkindate+`</td>
+                        <td>`+bookRow.checkoutdate+`</td>`;
+                        if(bookRow.statusBook === statusBook[0]) {
+                            html += `<td class="text-center"><label class="btn btn-warning btn-sm">Chưa</label></td>`;
+                        } if(bookRow.statusBook === statusBook[1]) {
+                            html += `<td class="text-center" ><label class="btn  btn-success btn-sm">Rồi</label></td>`;
+                        }
+                        html += `                           
+                        <td style="text-align: right;">`+totalmoney+`</td>
+                            <td>
+                                <button type="button" class="btn btn-info btn-sm editbook" data-id="`+bookRow.id+`">
+                                    Xem
+                                </button>                                    
+                            </td>
+                        </tr>
+                        `;
+                        
+            }
+        document.querySelector('#dataTable tbody').innerHTML = html;   
+                 
+    }
+   
+
+    $(document).ready( function(){
+    
+        if(user.username !== "admin") {            
+            window.location.assign('/staff/login')
+        }          
+
+        load_data();    
+        function load_data() {  
+            document.getElementById("bookform").style.display = 'block';
+            document.getElementById("bookdetailform").style.display = 'none';
+            $.ajax({
+                url: '/book/all',
+                method:viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:function( data)
+                {
+                    if(data.success === false && data.statusCode === 400){
+                        alert("Token Đã hết hạn. Vui lòng đăng nhập")
+                        window.location.assign('admin/login')
+                    }
+                    if(data && data.book.length > 0 && data.success) {
+                        rowInPage = data.rowInPage;
+                        pages = Math.ceil(data.book.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.book.length/rowInPage)
+                        const _stt = 0;
+                        let row = data.book.length;
+                        if(row > rowInPage) {
+                            row = rowInPage
+                        } 
+                        displaypages(pages, current, lastPage);
+                        displayBook(row, _stt, data.book)
+                    }   
+                    
+                }
+
+            });
+        }
+        
+
+        const loadBookByBookId =  (bookid ) => {
+            $.ajax({
+                url: `/book/${bookid}` ,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success: function( data){
+                    
+                    if(data.success) {                    
+                        book = data.book;
+                        roomServiceDetails = []; 
+                        customerDetails = [];
+                                
+                        var loadBookDetail = data.bookdetail;
+                        var loadRoomServices = data.roomservicedetail;
+                        bodyRoomService = "";                        
+                           
+                        if(book && book.length >0) {
+                                    
+                            let temp = book[0];
+
+                            var tempcheckout = temp.checkoutdate.toString().slice(0,16);
+                            var tempcheckin = temp.checkindate.toString().slice(0,16);
+                                    
+                            $('#roomid').val(temp.roomid)                                    
+                            $('#paymentname').val(temp.paymentname)
+                            $('#checkoutdate').val(tempcheckout)
+                            $('#checkindate').val(tempcheckin)
+                                    
+                            $('#bookid').val(bookid)
+                                    
+                        }
+                        if(loadBookDetail && loadBookDetail.length>0) {         
+                                                        
+                        for(let i = 0; i < loadBookDetail.length; i++) {
+                            customerDetails.push({
+                                id: loadBookDetail[i].customerid
+                            })
+                        }
+                                    
+                        bodyCustomerDetail();        
+                        }
+                        if(loadRoomServices && loadRoomServices.length > 0) {
+                                    
+                            for (let i = 0; i< loadRoomServices.length ; i++) {
+                            roomServiceDetails.push({
+                                id: loadRoomServices[i].roomserviceid,
+                                quantity: loadRoomServices[i].quantity
+                            })
+                        }
+                        bodyRoomServicesDetail(); 
+                    }
+                    }
+                    bodyRoomDetail();
+                    }
+            })    
+        }
+
+        const loadBookDetail =  () => {
+            $.ajax({
+                url: '/book/load',
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    rooms = data.rooms
+                    const tempRoom = data.rooms
+                    customers = data.customers;
+                    roomServices = data.roomservices;
+                    payments = data.payments;;
+                }
+            });
+            
+        }
+
+        $(document).on('click', '.search', function(){
+            let search = document.getElementById('search').value;
+            $.ajax({
+                url: `/book/search`,
+                method: viewMode[1],
+                headers: {
+                    'Authorization':token
+                },
+                data: {search: search},
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    if(data.data && data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        var row = rowInPage;
+                        if(data.data.length < rowInPage){
+                            row = data.data.length;
+                        } 
+                        displaypages(pages, current, lastPage);
+                        displayBook(row, _stt, data.data)
+                    } else {
+                        alert("Dữ liệu tìm kiếm không phù hợp")
+                    }
+                }
+            })
+        });
+    
+        
+        $(document).on('click', '.pagesindex', function(){
+            var id = $(this).data('id');
+            id = parseInt(id);
+            $.ajax({
+                url: `/book/page/${id-1}0/${rowInPage}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    let _stt = id-1 + "" + 0;
+                    _stt = parseInt(_stt)
+   
+                    displaypages(pages, id, lastPage);
+                    const row = parseInt(data.book.length);
+                    displayBook(row, _stt, data.book)
+                }
+            })
+        });
+        
+        $(document).on('click', '.editbook', function(){
+            
+            var id = $(this).data('id');
+            window.open(`/invoice/${id}`)
+        });
+    });
+    
+    </script>

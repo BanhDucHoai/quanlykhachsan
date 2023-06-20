@@ -1,0 +1,102 @@
+<div class="container">
+
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-6">
+                    <button type="button" id="changepass" class="btn btn-success float-start">Đổi mật khẩu</button>
+                </div> 
+            </div>
+        </div>
+        
+    </div>
+
+</div>
+<div class="modal" tabindex="-1" id="actionModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form  id="sample_form" class="sample_form">
+                <div class="modal-header" id="dynamicModalTitle">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 ">
+                        <label class="form-label">Mật khẩu cũ</label>
+                        <input type="password" name="oldpassword" id="oldpassword" class="form-control oldpassword" required />
+                    </div>
+                    <div class="mb-3 ">
+                        <label class="form-label">Mật khẩu mới</label>
+                        <input type="password" name="newpassword" id="newpassword" class="form-control newpassword" required/>
+                    </div>                        
+                                    
+                </div>
+                <div class="modal-footer">                    
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" id="actionButton">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    const user = JSON.parse(localStorage.getItem('user'));
+
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/staff/login")
+    }
+    var token = "";
+    var staffid = ""
+    if (user && user.accessToken) {        
+        token = `Bearer ${user.accessToken}`
+        staffid = user.id        
+    }
+    
+    $(document).ready( function(){      
+
+        $('#changepass').click(function(){
+            $('#dynamicModalTitle').text('Đổi mật khẩu');
+    
+            $('#sample_form')[0].reset();
+    
+            $('#action').val('Thêm');
+    
+            $('#actionButton').text('Đồng ý');
+    
+            $('#actionModal').modal('show');
+    
+        });
+
+        $('#sample_form').on('submit', function(event){    
+            event.preventDefault();
+            $.ajax({
+                url:'/staff/changepass',
+                method:"PUT",
+                headers: {
+                    'Authorization':token
+                },
+                data:$('#sample_form').serialize(),
+                dataType:"JSON",
+                beforeSend:function(){
+                    $('#actionButton').attr('disabled', 'disabled');
+                },
+                success:function(data)
+                {                    
+   
+                    if(data && data.success){
+                        alert("Đổi mật khẩu thành công")
+                        window.location.assign('/staff/login')
+                    } else {
+                        alert("Sai mật khẩu")
+                    }
+                    
+                }
+            });
+
+        });
+
+    
+        
+    });
+    
+</script>

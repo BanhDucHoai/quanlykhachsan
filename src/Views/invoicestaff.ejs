@@ -1,0 +1,397 @@
+
+<!-- Bookdetail -->
+<div class="container bookdetailform" id="bookdetailform" >
+    
+    <div class="card">
+        <form id="bookformdetail" class="bookformdetail">
+            <div class="card-header"> 
+                <div class="row">
+                    <div class="col-2">
+                        <label class="form-label"><h5>Hình thức</h5></label>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label"><h5>Trạng thái</h5></label>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label"><h5>Tổng tiền</h5></label>
+                    </div>
+                    <div class="col-2">
+                        <label class="form-label"><h5>Nhân Viên</h5></label>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-primary float-end print" id="print">In</button>
+                        
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-2">
+                        <input type="text" class="form-control paymentname"  id="paymentname" name="paymentname" readonly>
+                    </div>
+                    <div class="col-2">
+                        <input type="text" class="form-control statusname"  id="statusname" name="statusname" readonly>
+                    </div>
+                    <div class="col-2">
+                        <input type="text" class="form-control totalmoney"  id="totalmoney" name="totalmoney" readonly>
+                    </div>
+                    <div class="col-2">
+                        <input type="text" class="form-control username"  id="username" name="username" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row tablecustomer" id="tablecustomer">                                         
+                </div>
+                <div class="row tableroom" id="tableroom">                
+                </div>
+                
+                <div class="row tableroomservice" id="tableroomservice"> 
+                                   
+                </div> 
+                               
+            </div>
+            <div class="row">
+                <input type="text" name="roomid" id="roomid" class="roomid" hidden>
+                <input type="text" name="paymentid" id="paymentid" class="paymentid" hidden>
+                <input type="text" name="checkoutdate" id="checkoutdate" class="checkoutdate" hidden>
+                <input type="text" name="checkindate" id="checkindate" class="checkindate" hidden>
+                <input type="text" name="bookid" id="bookid" class="bookid" hidden>
+            </div>
+                        
+        </form>        
+    </div>
+</div>
+
+
+<script>
+    const statusBook = ["CHUATHANHTOAN", "DATHANHTOAN"]
+    const ViewModeCustomer = ["CREATE","EDITCUSTOMER","DELETECUSTOMER"]
+    const ViewModeServiceDetail = ["CREATE","EDITSERVICEDETAIL","DELETESERVICEDETAIL"]
+    var totalRoom = 0;
+    var totalRoomService =0;
+    var room = [];
+    var customerDetails = [];
+    var book; 
+    var bookDetails;
+    var roomServices = [];
+    var roomServiceDetails = [];
+    var payments = ``;
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/staff/login")
+    }
+    var token = "";
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+    
+    const headerCustomer = `
+                <div class="col">
+                    <h4>Khách hàng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="bookdetaildata">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên</th>
+                                    <th scope="col">CCCD</th>
+                                    <th scope="col">Loại khách</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+    var bodyCustomer =``;
+
+    const footerCustomer = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+    const headerRoom = `
+                <div class="col">
+                    <h4>Thông tin phòng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="roomdetail">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tên Phòng</th>                                    
+                                    <th scope="col">Ngày Thuê</th>    
+                                    <th scope="col">Ngày Trả</th>                               
+                                    <th scope="col">Số Ngày</th>
+                                    <th scope="col">Đơn giá/ngày</th>
+                                    <th scope="col">Đơn giá/giờ</th>
+                                    <th scope="col">Tổng tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+    var bodyRoom =``;
+
+    const footerRoom = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+
+    const headerRoomService =`
+                <div class="col">
+                    <h4>Dịch vụ phòng</h4>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered" id="serviceroom_data">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên Dịch vụ</th>
+                                    <th scope="col">Số lượng</th>
+                                    <th scope="col">Đơn giá</th>
+                                    <th scope="col">Thành tiền</th>                                    
+                                </tr>
+                            </thead>
+                            `
+    
+    var bodyRoomService = ``;
+    const footerRoomService = `</tbody>
+                        </table>
+                    </div>
+                </div>
+    `;
+    
+    const displayRoomServiceDetail = () => {
+        if(bodyRoomService.length > 0){
+            document.querySelector('#tableroomservice').innerHTML = headerRoomService + bodyRoomService + footerRoomService;
+        }   else {
+            document.querySelector('#tableroomservice').innerHTML = '';
+        }
+    }
+    const displayCustomerDetail = () => {
+        if(bodyCustomer.length > 0){
+            document.querySelector('#tablecustomer').innerHTML = headerCustomer + bodyCustomer + footerCustomer;
+        }   else {
+            document.querySelector('#tablecustomer').innerHTML = '';
+        }
+    }
+    const displayRoomDetail = () => {
+        if(bodyRoom.length > 0){
+            document.querySelector('#tableroom').innerHTML = headerRoom + bodyRoom + footerRoom;
+        }   else {
+            document.querySelector('#tableroom').innerHTML = '';
+        }
+    }    
+
+    const bodyRoomServicesDetail = () =>{
+
+        this.bodyRoomService = "";
+
+        var totalmoney = 0;
+        this.bodyRoomService = ``;
+        if(this.roomServiceDetails && this.roomServiceDetails.length>0){
+            
+            for(let j = 0; j < this.roomServiceDetails.length; j++){
+
+                let roomservice = this.roomServiceDetails[j];
+                        totalmoney += parseInt(roomservice.price) * parseInt(roomServiceDetails[j].quantity);
+                        let tempprice = parseInt((roomservice.price)).toLocaleString(undefined)
+                        this.bodyRoomService += `
+                                    <tr>
+                                        <td>${parseInt(j+1)}</td>
+                                        <td>${roomservice.roomservicename}</td>
+                                        <td>${roomServiceDetails[j].quantity}</td>
+                                        <td>${tempprice}</td>
+                                        <td>${(parseInt(roomservice.price) * parseInt(roomServiceDetails[j].quantity)).toLocaleString(undefined)}</td> 
+                                    </tr>
+                                `;                         
+                
+            }
+            this.bodyRoomService += `
+                    <tr>
+                        <td></td>
+                        <td>Tổng tiền</td>
+                        <td></td>
+                        <td></td>
+                        <td>${(totalmoney).toLocaleString(undefined)}</td>
+                    </tr>
+                `;
+            
+        }
+        totalRoomService = totalmoney;
+
+        displayRoomServiceDetail();
+        displaytotalBook();
+        
+        
+    }
+    const displaytotalBook = () => {
+        let  totalMoney = totalRoom + totalRoomService;
+        $("#totalmoney").val(`${(totalMoney).toLocaleString(undefined)} VND`);
+    }
+    const formatDateTime = (dateString) =>{
+        var dateParts = dateString.split(' ');
+        var timeParts = dateParts[0].split(':');
+        var dateParts = dateParts[1].split('/');
+        var jsDate = new Date(dateParts[2], dateParts[1]-1 , dateParts[0], timeParts[0], timeParts[1], timeParts[2]);        
+        return jsDate        
+    }
+
+    const bodyRoomDetail = () =>{
+               
+        console.log(room[0].checkindate)
+        this.bodyRoom = "";
+        let checkindate = room[0].checkindate
+        let checkoutdate = room[0].checkoutdate
+        const roominputid = room[0].roomid
+
+        var hour = 0;
+        var tempday = 0;
+        let date1 = formatDateTime(checkindate);
+        let date2 = formatDateTime(checkoutdate); 
+
+        checkindate = checkindate.toLocaleString()
+        checkoutdate = checkoutdate.toLocaleString()
+        let diffInMs = date2.getTime() - date1.getTime();
+
+        let diffInHours = diffInMs / (1000  * 60 * 60);
+
+        var days =  diffInHours / 24;
+
+        hour = parseInt(Math.ceil(diffInHours % 24));
+        const tempHour = hour;
+
+        tempday = Math.round(days);
+        const tempdays = Math.round(days);
+           
+        if(hour > 8) {
+            tempday++;
+            hour = 0;
+        }        
+        if (room && room.length >0 ) {
+            var temproom = room[0];
+                    totalRoom =  Math.round( parseInt(tempday) * temproom.price  + parseInt(hour)*temproom.price/10);
+                    let roomprice = parseInt(temproom.price).toLocaleString(undefined)
+                    this.bodyRoom += `
+                        <tr>
+                            <td>${temproom.roomname}</td>
+                                        
+                            <td>${checkindate}</td>
+                            <td>${checkoutdate}</td>
+                            <td>${tempdays} Ngày ${tempHour} Giờ</td>
+                            
+                            <td>${roomprice}</td>
+                            <td>${(temproom.price/10).toLocaleString(undefined)}</td>
+                            <td>${(totalRoom).toLocaleString(undefined)}</td>                             
+                            
+                        </tr>                            
+                    `;
+
+        }
+        displayRoomDetail();
+        displaytotalBook();
+    }
+    
+    
+
+    const bodyCustomerDetail = () =>{
+        //Edit bi lõi
+        this.bodyCustomer = "";
+
+        for(let j = 0; j < this.customerDetails.length; j++){
+            let customer = this.customerDetails[j];
+                    this.bodyCustomer += `
+                    <tr>
+                        <td >${parseInt(j+1)}</td>
+                        <td>${customer.fullname}</td>
+                        <td>${customer.citizenIdentityCard}</td>
+                        <td>${customer.customertypename}</td> 
+                    </tr>
+                `;
+        }
+        displayCustomerDetail();        
+    }  
+    
+    const url = window.location.href;
+        
+    const index = url.split('/');
+    let indexInvoice = index[index.length-1]
+    $(document).ready(  function(){
+        
+        loadBookByBookId(indexInvoice)
+        function loadBookByBookId  (bookid )  {
+            $.ajax({
+                url: `/book/${bookid}` ,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data){
+                    if(data && data.success === false && data.statusCode === 400) {
+                        alert("Vui lòng đăng nhập lại")
+                        window.location.assign('/login')
+                    }
+
+                    if(data.success) {                  
+                        book = data.book;
+                        roomServiceDetails = []; 
+                        customerDetails = [];
+                                
+                        var loadBookDetail = data.bookdetail;
+                        var loadRoomServices = data.roomservicedetail;
+                        bodyRoomService = "";
+
+                        bookDetails = data.bookdetail;
+                           
+                                if(book && book.length >0) {
+                                    
+                                    let temp = book[0];
+                                    
+                                    room.push({
+                                        roomid: temp.roomid,
+                                        roomname: temp.roomname,
+                                        price: temp.price,
+                                        checkindate: temp.checkindate,
+                                        checkoutdate: temp.checkoutdate,
+                                    })                                 
+                                    $('#paymentname').val(temp.paymentname)
+                                    $('#statusname').val(temp.statusname)
+                                    $('#username').val(temp.username)
+                                    
+                                }
+                                if(loadBookDetail && loadBookDetail.length>0) {         
+                                                        
+                                    for(let i = 0; i < loadBookDetail.length; i++) {                                        
+                                        customerDetails.push({
+                                            id: loadBookDetail[i].customerid,
+                                            customertypename: loadBookDetail[i].customertypename,
+                                            citizenIdentityCard: loadBookDetail[i].citizenIdentityCard,
+                                            fullname: loadBookDetail[i].fullname,
+                                        })
+                                    }
+                                    bodyCustomerDetail();        
+                                }
+                                if(loadRoomServices && loadRoomServices.length > 0) {
+                                    
+                                    for (let i = 0; i< loadRoomServices.length ; i++) {
+                                        roomServiceDetails.push({
+                                            id: loadRoomServices[i].roomserviceid,
+                                            quantity: loadRoomServices[i].quantity,
+                                            roomservicename: loadRoomServices[i].roomservicename,
+                                            price: loadRoomServices[i].price,
+                                        })
+                                    }
+                                    bodyRoomServicesDetail(); 
+                                }
+                            }
+                        bodyRoomDetail();
+                            
+                        
+                    }
+            })    
+        }    
+        $(document).on('click', '.print', function(){
+            
+            event.preventDefault();
+            window.print();
+            
+    })
+
+    });
+    
+    </script>

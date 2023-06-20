@@ -1,0 +1,419 @@
+<div class="container">
+        <span id="message"></span>
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-3">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Tìm kiếm"/>
+                </div>
+                <div class="col-2">
+                    <button type="button" id="search" class="btn btn-success   search">Tìm kiếm</button>
+                </div>
+                <div class="col-6">
+                    <button type="button" id="addRoomService" class="btn btn-primary float-end">Thêm</button>
+                </div>                
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col">STT</th>
+                            <th scope="col">Tên dịch vụ</th>
+                            <th scope="col">Đơn giá (VND)</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="card-text pages row justify-content-center"  id="pages">
+            
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  
+
+<div class="modal" tabindex="-1" id="actionModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="roomServiceForm" class="roomServiceForm">
+                <div class="modal-header" id="dynamicModalTitle">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 ">
+                        <label class="form-label">Tên dịch vụ</label>
+                        <input type="text" name="roomservicename" id="roomservicename" class="form-control roomservicename" required />
+                    </div>
+                    <div class="mb-3 ">
+                        <label class="form-label">Đơn giá (VND)</label>
+                        <input type="number" name="price" id="price" class="form-control  price" required/>
+                    </div> 
+                    
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" name="id" id="id" />
+                    <input type="hidden" name="action" id="action" value="Thêm" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" id="actionButton">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var rowInPage = 10;
+    var lastPage = 1;
+    var pages = 1;
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+    var indexMode = "GET";
+    const user = JSON.parse(localStorage.getItem('user'));
+    var token = "";
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/admin/login")
+    }
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+
+    const displaypages = (pages, current, lastPage) =>{
+        var firstPage = 1;
+        var bodyPages = ``;
+        if(pages > 0) { 
+            bodyPages += `
+            <div class="justify-content-center">
+            <nav class="mx-auto justify-content-center">
+            <ul class="pagination justify-content-center" style="margin-top: 2rem;">`;
+            if(current === 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>                
+                </li>`;
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>
+                </li>`
+            } 
+            var i = (Number(current) > 3 ? Number(current) - 2 : 1) 
+  
+            if(i !== 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link" >...</button>
+                </li>`
+            } 
+            for(; i <= (Number(current) + 2) && i <= pages; i++) { 
+            
+                if(i == current) { 
+                    bodyPages += `
+                    <li class="page-item active">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>                    
+                    </li>`;
+                } else { 
+                    bodyPages += `
+                    <li class="page-item">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>
+                    </li>`
+                } 
+                if (i == Number(current) + 2 && i < pages) { 
+                    bodyPages += `
+                    <li class="page-item disabled">
+                        <button class="page-link" >...</button>
+                    </li>`
+                } 
+            }
+        
+            if(current === pages) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+lastPage+`">Cuối</button>                
+                </li>`
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+pages+`">Cuối</button>                
+                </li>`
+            }
+            bodyPages += `
+                </ul>
+            </nav>
+            </div>`
+        } 
+       
+        document.querySelector('#pages').innerHTML = bodyPages;
+    }
+    
+    const displayRoom = (rowInPage, _stt, datas) => {
+        var html =``;  
+        for(var count = 0; count < rowInPage; count++) {
+                let data = datas[count];
+                _stt++;
+                let price = (parseInt(data.price)).toLocaleString();
+                            html += `
+                            <tr>
+                                <td>`+ _stt +`</td>
+                                <td>`+data.roomservicename+`</td>
+                                <td style="text-align: right;">`+price+`</td>
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm edit" data-id="`+data.id+`">
+                                        Sửa
+                                    </button>
+                                    &nbsp;
+                                    <button type="button" class="btn btn-danger btn-sm delete" data-id="`+data.id+`">
+                                        Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                            `;  
+                             
+            }                    
+          
+        document.querySelector('#dataTable tbody').innerHTML = html;
+                 
+    }
+   
+
+    $(document).ready( function(){
+    
+        if(user.username !== "admin") {            
+            window.location.assign('/staff/login')
+        }
+    
+        load_data();
+    
+        function load_data()
+        {            
+
+            $.ajax({
+                url: '/roomservice/all',
+                headers: {
+                    'Authorization':token
+                },
+                method: viewMode[0],
+                dataType : "JSON",
+                success:function( data)
+                {
+                    if(data.success === false && data.statusCode === 400){
+                        alert("Token Đã hết hạn. Vui lòng đăng nhập")
+                        window.location.assign('admin/login')
+                    }
+                    if (data.success) {
+                        rowInPage = data.rowInPage
+                    }
+                    if(data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        var row = data.data.length;
+                        if(row > rowInPage) {
+                            row = rowInPage
+                        } else {
+                            row = data.data.length
+                        }
+                        
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                        
+                    }  
+                          
+                    indexMode = viewMode[1];         
+                }
+            });
+        }
+    
+        $('#addRoomService').click(function(){
+
+
+            $('#dynamicModalTitle').text('Thêm Dịch vụ phòng');
+    
+            $('#roomServiceForm')[0].reset();
+    
+            $('#action').val('Thêm');
+    
+            $('#actionButton').text('Thêm');
+    
+            $('#actionModal').modal('show');
+            indexMode = viewMode[1];
+    
+        });
+    
+        $('#roomServiceForm').on('submit', function(event){
+    
+            event.preventDefault();
+
+    
+            $.ajax({
+                url:'/roomservice',
+                method: indexMode,
+                headers: {
+                    'Authorization':token
+                },
+                data:$('#roomServiceForm').serialize(),
+                dataType:"JSON",
+                beforeSend:function(){
+                    $('#actionButton').attr('disabled', 'disabled');
+                },
+                success:function(data)
+                { 
+                    
+                    if (data.success) {
+                        $('#actionButton').attr('disabled', false);
+
+                        document.querySelector('#message').innerHTML = '<div class="alert alert-success">'+data.message+'</div>';
+            
+                        $('#actionModal').modal('hide');
+        
+                        load_data();
+        
+                        setTimeout(function(){
+                            document.querySelector('#message').innerHTML = '';
+                        }, 5000);
+                    } else {
+                        $('#actionButton').attr('disabled', false);
+                        alert(data.message)
+                    }
+                    
+                }
+            });
+    
+        });
+        
+        $(document).on('click', '.edit', function(){
+
+    
+            var id = $(this).data('id');
+    
+            
+    
+            $.ajax({
+                url:`/roomservice/${id}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType:"JSON",
+                success:function(data)
+                {
+                    
+                    if(data.success) {
+                        $('#dynamicModalTitle').text('Sửa Dịch vụ phòng');
+    
+                        $('#action').val('Sửa');
+                
+                        $('#actionButton').text('Sửa');
+                
+                        $('#actionModal').modal('show');
+                        const temp = data.data;
+  
+                        $('#roomservicename').val(temp.roomservicename);
+                        $('#price').val(temp.price);
+                        $('#id').val(temp.id);
+                        indexMode = viewMode[2]
+                    } else {
+                        alert("Sửa không thành công")
+                    }
+                    
+                }
+            });    
+        });
+
+        $(document).on('click', '.pagesindex', function(){
+            var id = $(this).data('id');
+            id = parseInt(id);
+            $.ajax({
+                url: `/roomservice/page/${id-1}0/${rowInPage}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function(data)
+                {
+
+                    let _stt = id-1 + "" + 0;
+                    _stt = parseInt(_stt)
+                    
+                    displaypages(pages, id, lastPage);
+                    const row = parseInt(data.data.length);
+                    displayRoom(row, _stt, data.data)
+                }
+            })
+        });
+        
+
+        $(document).on('click', '.search', function(){
+            let search = document.getElementById('search').value;
+            $.ajax({
+                url: `/roomservice/search`,
+                method: viewMode[1],
+                headers: {
+                    'Authorization':token
+                },
+                data: {search: search},
+                dataType : "JSON",
+                success:  function( data)
+                {
+
+                    if(data.data && data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        var row = rowInPage;
+                        if(data.data.length < rowInPage){
+                            row = data.data.length;
+                        } 
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                    } else {
+                        alert("Dữ liệu tìm kiếm không phù hợp")
+                    }
+                }
+            })
+        });
+    
+    
+        $(document).on('click', '.delete', function(){
+    
+            var id = $(this).data('id');
+    
+            if(confirm("Bạn muốn Xóa??"))
+            {
+                $.ajax({
+                    url:'/roomservice',
+                    method: viewMode[3],
+                    headers: {
+                    'Authorization':token
+                    },
+                    data:{ id:id},
+                    dataType:"JSON",
+                    success:function(data)
+                    {
+                        
+                        if(data.success){
+                            document.querySelector('#message').innerHTML = '<div class="alert alert-success">'+data.message+'</div>';
+                            load_data();
+                            setTimeout(function(){
+                                document.querySelector('#message').innerHTML = '';
+                            }, 5000);
+                        } else {
+                            alert("Xía không thành công")
+                        }
+                        
+                    }
+                });
+            }
+    
+        });
+    });
+    
+    </script>

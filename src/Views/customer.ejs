@@ -1,0 +1,490 @@
+  <div class="row">
+    
+    <span id="message"></span>
+    <div class="card row">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-3">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Tìm kiếm"/>
+                </div>
+                <div class="col-2">
+                    <button type="button" id="search" class="btn btn-success   search">Tìm kiếm</button>
+                </div>
+                <div class="col-6">
+                    <button type="button" id="add_data" class="btn btn-primary float-end">Thêm</button>
+                </div>
+                
+                
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col" >STT</th>
+                            <th scope="col">Tên</th>                            
+                            <th scope="col">Địa chỉ</th>
+                            <th scope="col">CCCD</th>
+                            <th scope="col">Loại khách</th>
+                            <th scope="col" >Ngày sinh</th>
+                            <th scope="col" >Giới tính</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="card-text pages row justify-content-center"  id="pages">
+            
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  
+
+<div class="modal" tabindex="-1" id="actionModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="sample_form" class="sample_form">
+                <div class="modal-header" id="dynamicModalTitle">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3 ">
+                        <label class="form-label">Tên</label>
+                        <input type="text" name="fullname" id="fullname" class="form-control" required/>
+                    </div>                    
+                    <div class="mb-3 ">
+                        <label class="form-label">CCCD </label>
+                        <input type="text" name="citizenIdentityCard" id="citizenIdentityCard" class="form-control" required/>
+                    </div>
+                    <div class="mb-3 ">
+                        <label class="form-label">Địa chỉ </label>
+                        <input type="text" name="address" id="address" class="form-control" required/>
+                    </div>
+                    <div class="mb-3 " >
+                        <label class="form-label">Loại khách</label>
+                        <select name="customertype" id="customertype" class="form-select customertype">
+                        </select>
+                    </div>
+
+                    <div class="mb-3 ">
+                        <label class="form-label">Ngày sinh</label>
+                        <input type="date" class="form-control"  id="dateofbirth" name="dateofbirth" placeholder="DateOfBirth" required>
+                    </div>
+                    <div class="mb-3 ">
+                        <label class="form-label">Giới tính</label>
+                        <select name="gender" id="gender" class="form-select gender">
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" name="id" id="id" />
+                    <input type="hidden" name="action" id="action" value="Thêm" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" id="actionButton">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var rowInPage = 10;
+    var lastPage = 1;
+    var pages = 1;
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+    var indexMode = "GET";
+
+    
+    var _customerType =`
+    `;
+    var _genderType = `
+    `;
+
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/admin/login")
+    }
+    var token = "";
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+    const displaypages = (pages, current, lastPage) =>{
+        var firstPage = 1;
+        var bodyPages = ``;
+        if(pages > 0) { 
+            bodyPages += `
+            <div class="justify-content-center">
+            <nav class="mx-auto justify-content-center">
+            <ul class="pagination justify-content-center" style="margin-top: 2rem;">`;
+            if(current === 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>                
+                </li>`;
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">Đầu</button>
+                </li>`
+            } 
+            var i = (Number(current) > 3 ? Number(current) - 2 : 1) 
+  
+            if(i !== 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link" >...</button>
+                </li>`
+            } 
+            for(; i <= (Number(current) + 2) && i <= pages; i++) { 
+            
+                if(i == current) { 
+                    bodyPages += `
+                    <li class="page-item active">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>                    
+                    </li>`;
+                } else { 
+                    bodyPages += `
+                    <li class="page-item">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">${i}</button>
+                    </li>`
+                } 
+                if (i == Number(current) + 2 && i < pages) { 
+                    bodyPages += `
+                    <li class="page-item disabled">
+                        <button class="page-link" >...</button>
+                    </li>`
+                } 
+            }
+        
+            if(current === pages) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+lastPage+`">Cuối</button>                
+                </li>`
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+pages+`">Cuối</button>                
+                </li>`
+            }
+            bodyPages += `
+                </ul>
+            </nav>
+            </div>`
+        } 
+        document.querySelector('#pages').innerHTML = bodyPages;
+    }
+    const displayRoom = (rowInPage, _stt, datas) => {
+        var html =``;
+
+       
+        for(var count = 0; count < rowInPage; count++) {
+                let data = datas[count];
+                _stt++;
+                html += `
+                            <tr>
+                                <td >`+ _stt +`</td>
+                                <td>`+data.fullname+`</td>                               
+                                <td>`+data.address+`</td>
+                                <td>`+data.citizenIdentityCard+`</td>
+                                <td>`+data.customertypename+`</td>
+                                <td >`+data.dateofbirth+`</td>
+                                <td >`+data.gendername+`</td>
+                                
+                                <td>
+                                    <button type="button" class="btn btn-warning btn-sm edit" data-id="`+data.id+`">
+                                        Sửa
+                                    </button>
+                                &nbsp;
+                                <button type="button" class="btn btn-danger btn-sm delete" data-id="`+data.id+`">
+                                    Xóa
+                                    </button>
+                            </td>
+                        </tr>
+                    `;                
+            }                    
+          
+        document.querySelector('#dataTable tbody').innerHTML = html;
+                 
+    }
+   
+
+    $(document).ready( function(){
+    
+        if(user.username !== "admin") {            
+            window.location.assign('/staff/login')
+        }
+    
+        load_data();
+    
+        function load_data()
+        {            
+
+            $.ajax({
+                url: '/customer/all',
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                data:{action:'fetch'},
+                dataType : "JSON",
+                success:function( data)
+                {
+                    if(data.success === false && data.statusCode === 400){
+                        alert("Token Đã hết hạn. Vui lòng đăng nhập")
+                        window.location.assign('admin/login')
+                    }
+                    
+                    _customerType =``;
+                    _genderType = ``;   
+                           
+                    if(data.customerType.length > 0 ) {
+  
+                        for(let index = 0 ; index <data.customerType.length  ; index++) {
+                            let _index = index + 1;
+                            _customerType = `<option value="` + data.customerType[index].id+`">` 
+                                + data.customerType[index].customertypename + `</option>
+                            ` + _customerType;
+                        }                        
+                        _customerType += `
+                        `;                        
+                    }                    
+
+                    if(data.genderType.length > 0) {
+    
+                        for(let index = 0 ; index <data.genderType.length  ; index++) {
+                            let _index = index + 1;
+                            _genderType = `<option value="` + data.genderType[index].id+`">` 
+                                + data.genderType[index].gendername + `</option>
+                            ` + _genderType;
+                        }                        
+                        _genderType += `
+                        `;                        
+                    }
+    
+                    if(data.data && data.data.length > 0 && data.success) {
+                        rowInPage = data.rowInPage
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        let row = data.data.length;
+                        if(row > rowInPage) {
+                            row = rowInPage
+                        }
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                    }   
+                       
+                    indexMode = viewMode[1]
+                }
+            });
+        }
+    
+        $('#add_data').click(function(){
+            
+            document.querySelector('#sample_form div div .customertype').innerHTML = _customerType;  
+            document.querySelector('#sample_form div div .gender').innerHTML = _genderType;  
+
+            $('#dynamicModalTitle').text('Thêm Khách hàng');
+    
+            $('#sample_form')[0].reset();
+    
+            $('#action').val('Thêm');
+    
+            $('#actionButton').text('Thêm');
+            $(document).ready( function() {
+                
+                var now = new Date();
+                var month = (now.getMonth() + 1);               
+                var day = now.getDate();
+                if (month < 10) 
+                    month = "0" + month;
+                if (day < 10) 
+                    day = "0" + day;
+                var today = now.getFullYear() + '-' + month + '-' + day;
+                $('#dateofbirth').val(today);
+            });
+            indexMode = viewMode[1];
+            $('#actionModal').modal('show');
+    
+        });
+    
+        $('#sample_form').on('submit', function(event){            
+    
+            event.preventDefault();
+    
+            $.ajax({
+                url:'/customer',
+                method: indexMode,
+                headers: {
+                    'Authorization':token
+                },
+                data:$('#sample_form').serialize(),
+                dataType:"JSON",
+                beforeSend:function(){
+                    $('#actionButton').attr('disabled', 'disabled');
+                },
+                success:function(data)
+                {
+                    
+                    $('#actionButton').attr('disabled', false);
+                    document.querySelector('#message').innerHTML = '<div class="alert alert-success">'+data.message+'</div>';
+    
+    
+                    $('#actionModal').modal('hide');
+    
+                    load_data();
+    
+                    setTimeout(function(){
+                        document.querySelector('#message').innerHTML = '';
+                    }, 5000);
+                }
+            });
+    
+        });
+        
+        $(document).on('click', '.edit', function(){
+           
+            
+            document.querySelector('#sample_form div div .customertype').innerHTML = _customerType;  
+            document.querySelector('#sample_form div div .gender').innerHTML = _genderType;  
+    
+            var id = $(this).data('id');
+    
+            
+            $.ajax({
+                url:`/customer/${id}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType:"JSON",
+                success:function(data)
+                {
+                    
+                    const temp = data.data;
+                    if(data.success) {
+                        $('#dynamicModalTitle').text('Sửa Khách hàng');
+    
+                        $('#action').val('Sửa');
+                
+                        $('#actionButton').text('Sửa');
+                
+                        $('#actionModal').modal('show');
+       
+                        indexMode = viewMode[2];
+                        $('#fullname').val(temp.fullname);
+                       
+                        $('#address').val(temp.address);
+                        $('#citizenIdentityCard').val(temp.citizenIdentityCard);
+                        $('#customertype').val(temp.customertype);
+                        $('#dateofbirth').val(temp.dateofbirth);
+                        $('#gender').val(temp.gender);
+                        $('#id').val(temp.id);
+                    } else {
+                        alert("Lỗi")
+                    }
+                    
+                }
+            });
+    
+        });
+    
+        $(document).on('click', '.delete', function(){
+    
+            var id = $(this).data('id');
+    
+            if(confirm("Bạn muốn xóa?"))
+            {
+                $.ajax({
+                    url:'/customer',
+                    method: viewMode[3],
+                    headers: {
+                    'Authorization':token
+                    },
+                    data:{ id:id},
+                    dataType:"JSON",
+                    success:function(data)
+                    {
+                        
+                        if(data.success) {
+                            document.querySelector('#message').innerHTML = '<div class="alert alert-success">'+data.message+'</div>';
+
+                            load_data();
+                            setTimeout(function(){
+                                document.querySelector('#message').innerHTML = '';
+                            }, 5000);
+                        }else {
+                            alert("Error")
+                        }
+                        
+                    }
+                });
+            }
+    
+        });
+        $(document).on('click', '.pagesindex', function(){
+            var id = $(this).data('id');
+            id = parseInt(id);
+            $.ajax({
+                url: `/customer/page/${id-1}0/${rowInPage}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    
+                    let _stt = id-1 + "" + 0;
+                    _stt = parseInt(_stt)
+
+                    displaypages(pages, id, lastPage);
+                    const row = parseInt(data.customers.length);
+                    displayRoom(row, _stt, data.customers)
+                }
+            })
+        });
+        
+        $(document).on('click', '.search', function(){
+            let search = document.getElementById('search').value;
+            $.ajax({
+                url: `/customer/search`,
+                method: viewMode[1],
+                headers: {
+                    'Authorization':token
+                },
+                data: {search: search},
+                dataType : "JSON",
+                success:  function( data)
+                {
+                   
+                    if(data.data && data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        var row = 0;
+                        if(data.data.length < rowInPage){
+                            row = data.data.length;
+                        } else {
+                            row = rowInPage;
+                        }
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                    } else {
+                        alert("Dữ liệu tìm kiếm không phù hợp")
+                    }
+                }
+            })
+        });
+    });
+    
+    </script>

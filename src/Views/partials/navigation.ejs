@@ -1,0 +1,101 @@
+
+<!-- Sidebar -->
+<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+  <!-- Sidebar - Brand -->
+  <a class="sidebar-brand d-flex align-items-center justify-content-center" href="/book">
+      
+      <div class="sidebar-brand-text mx-3">Hotel KING </div>
+  </a>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider my-0">
+  
+  <!-- Nav Item - Dashboard -->
+  <li class="nav-item  <%= (title == 'Books') ? 'active' : '' %> ">
+      <a class="nav-link" href="/book">
+          <i class="fas fa-fw fa-tachometer-alt"></i>
+          <span>Phiếu đặt phòng</span></a>
+  </li>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider">
+
+  <!-- Heading -->
+  <div class="sidebar-heading">
+      Dịch vụ
+  </div>
+
+  <!-- Nav Item - Pages Collapse Menu -->
+  <li class="nav-item <%= ((title == 'Customers') || (title == 'Genders')|| (title == 'CustomerTypes')) ? 'active' : '' %>">
+      <a class="nav-link <%= ((title == 'Customers') || (title == 'Genders') || (title == 'CustomerTypes')) ? '' : 'collapsed' %>" href="#" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="true"
+          aria-controls="collapseTwo">
+          <i class="fa fa-address-book"></i>
+          <span>Khách hàng</span>
+      </a>
+      <div id="collapseTwo" class="collapse <%= ((title == 'Customers') || (title == 'Genders') || (title == 'CustomerTypes')) ? 'show' : '' %>" aria-labelledby="headingTwo"
+          data-parent="#accordionSidebar">
+          <div class="bg-white py-2 collapse-inner rounded">
+              <a class="collapse-item <%= (title == 'Customers')  ? 'active' : '' %> " href="/customer">Khách hàng</a>
+              <a class="collapse-item <%=  (title == 'CustomerTypes') ? 'active' : '' %>" href="/customertype">Loại khách</a>
+              
+          </div>
+      </div>
+  </li>
+
+  <!-- Nav Item - Utilities Collapse Menu -->
+  <li class="nav-item <%= ((title == 'Rooms') || (title == 'RoomTypes') || (title == 'RoomServices')) ? 'active' : '' %>">
+      <a class="nav-link <%= ((title == 'Rooms') || (title == 'RoomTypes') || (title == 'RoomServices')) ? '' : 'collapsed' %>" href="#" data-toggle="collapse" data-target="#collapseUtilities"
+          aria-expanded="true" aria-controls="collapseUtilities">
+          <i class="fa fa-clone"></i>
+          <span>Phòng</span>
+      </a>
+      <div id="collapseUtilities" class="collapse <%= ((title == 'Rooms') || (title == 'RoomTypes') || (title == 'RoomServices')) ? 'show' : '' %> " aria-labelledby="headingUtilities"
+          data-parent="#accordionSidebar">
+          <div class="bg-white py-2 collapse-inner rounded">
+              <a class="collapse-item <%= (title == 'Rooms')  ? 'active' : '' %>" href="/room">Phòng</a>
+              <a class="collapse-item <%= (title == 'RoomServices')  ? 'active' : '' %>" href="/roomservice">Dịch vụ phòng</a>
+              <a class="collapse-item <%= (title == 'RoomTypes')  ? 'active' : '' %>" href="/roomtype">Loại phòng</a>
+          </div>
+      </div>
+  </li>
+
+  <!-- Divider -->
+  <hr class="sidebar-divider">
+  
+
+  <!-- Heading -->
+  <div class="sidebar-heading">
+      Báo Cáo
+  </div>
+  <li class="nav-item  <%= (title == 'Reports')  ? 'active' : '' %>">
+    <a class="nav-link" href="/report">
+        <i class="fas fa-fw fa-chart-area"></i>
+        <span>Báo Cáo</span></a>
+  </li>
+  <hr class="sidebar-divider">
+  <!-- Heading -->
+  <div class="sidebar-heading">
+      Nội bộ
+  </div>
+  <li class="nav-item <%= (title == 'Staffs')  ? 'active' : '' %>">
+    <a class="nav-link " href="/staff">
+        <i class="fas fa-fw fa-table"></i>
+        <span>Nhân viên</span>
+    </a>
+  </li>
+  
+    <li class="nav-item <%= (title == 'Profile')  ? 'active' : '' %>">
+      <a class="nav-link" href="/profile">
+          <i class="fa fa-address-card"></i>
+          <span>Profile</span>
+      </a>
+
+  <!-- Nav Item - Pages Collapse Menu -->
+  
+      
+  </li>
+  
+ 
+
+</ul>

@@ -1,0 +1,450 @@
+<div class="container">
+    <span id="message"></span>
+    <div class="card">
+        <div class="card-header">
+            <div class="row">
+                <div class="col-3">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Tìm kiếm"/>
+                </div>
+                <div class="col-2">
+                    <button type="button" id="search" class="btn btn-success   search">Tìm kiếm</button>
+                </div>
+                <div class="col-6">
+                    <button type="button" id="add_data" class="btn btn-primary float-end">Thêm</button>
+                </div>
+                
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th scope="col">STT</th>                            
+                            <th scope="col">Tên Phòng</th>
+                            <th scope="col">Loại Phòng</th>
+                            <th scope="col">Đơn Giá (VND)</th>
+                            <th scope="col">Trạng thái</th>
+                            <th scope="col">Mô tả</th>
+                            <th scope="col"></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="card-text pages row justify-content-center"  id="pages">
+            
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  
+
+<div class="modal" tabindex="-1" id="actionModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="sample_form" class="sample_form">
+                <div class="modal-header" id="dynamicModalTitle">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">                    
+                    <div class="mb-3 ">
+                        <label class="form-label">Tên Phòng</label>
+                        <input type="text" name="roomname" id="roomname" class="form-control roomname" required/>
+                    </div>                    
+                    <div class="mb-3 " >
+                        <label class="form-label">Loại phòng</label>
+                        <select name="roomtype" id="roomtype" class="form-select roomtype">
+                        </select>
+                    </div>                    
+                    <div class="mb-3 ">
+                        <label class="form-label">Mô tả</label>
+                        <input type="text" name="description" id="description" class="form-control description" />
+                    </div> 
+                </div>
+                <div class="modal-footer">
+                    <input type="hidden" name="id" id="id" />
+                    <input type="hidden" name="action" id="action" value="Thêm" />
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn btn-primary" id="actionButton">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    var rowInPage = 10;
+    var lastPage = 1;
+    var page = 1;
+    const viewMode = ["GET", "POST", "PUT", "DELETE"];
+    var indexMode = "GET";
+    var _roomType =``;
+    
+    const user = JSON.parse(localStorage.getItem('user'));
+    if(user === null && localStorage.getItem('user') === null) {
+        window.location.assign("/admin/login")
+    }
+    var token = "";
+    if (user && user.accessToken) {
+        
+        token = `Bearer ${user.accessToken}`
+    }
+    const displaypages = (pages, current, lastPage) =>{
+        var firstPage = 1;
+        var bodyPages = ``;
+        if(pages > 0) { 
+            bodyPages += `
+            <div class="justify-content-center">
+            <nav class="mx-auto justify-content-center">
+            <ul class="pagination justify-content-center" style="margin-top: 2rem;">`;
+            if(current === 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">
+                        Đầu
+                    </button>                
+                </li>`;
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+firstPage+`">
+                        Đầu
+                    </button>
+                </li>`
+            } 
+            var i = (Number(current) > 3 ? Number(current) - 2 : 1) 
+  
+            if(i !== 1) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link" >...</button>
+                </li>`
+            } 
+            for(; i <= (Number(current) + 2) && i <= pages; i++) { 
+            
+                if(i == current) { 
+                    bodyPages += `
+                    <li class="page-item active">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">
+                            ${i}
+                        </button>                    
+                    </li>`;
+                } else { 
+                    bodyPages += `
+                    <li class="page-item">
+                        <button class="page-link pagesindex" id="pagesindex" data-id="`+i+`">
+                            ${i}
+                        </button>
+                    </li>`
+                } 
+                if (i == Number(current) + 2 && i < pages) { 
+                    bodyPages += `
+                    <li class="page-item disabled">
+                        <button class="page-link" >
+                            ...
+                        </button>
+                    </li>`
+                } 
+            }
+        
+            if(current === pages) { 
+                bodyPages += `
+                <li class="page-item disabled">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+lastPage+`">
+                        Cuối
+                    </button>                
+                </li>`
+            } else { 
+                bodyPages += `
+                <li class="page-item">
+                    <button class="page-link pagesindex" id="pagesindex" data-id="`+pages+`">
+                        Cuối
+                    </button>                
+                </li>`
+            }
+            bodyPages += `
+                </ul>
+            </nav>
+            </div>`
+        } 
+        document.querySelector('#pages').innerHTML = bodyPages;
+    }
+    const displayRoom = (rowInPage, _stt, rooms) => {
+        var html =``;
+        for(var count = 0; count < rowInPage; count++) {
+                let roomRow = rooms[count];
+                let price = (parseInt(roomRow.price).toLocaleString());
+                _stt++;
+                html += `
+                    <tr>
+                        <td>`+ _stt +`</td>                       
+                        <td>`+roomRow.roomname+`</td>
+                        <td>`+roomRow.roomtypename+`</td>
+                        <td style="text-align: right;">`+price+`</td>
+                        <td>`+roomRow.statusname+`</td>
+                        <td>`+roomRow.description+`</td>
+                        <td>
+                            <button type="button" class="btn btn-warning btn-sm edit" data-id="`+roomRow.id+`">
+                                Sửa
+                            </button>
+                            &nbsp;
+                            <button type="button" class="btn btn-danger btn-sm delete" data-id="`+roomRow.id+`">
+                                Xóa
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }                    
+          
+        document.querySelector('#dataTable tbody').innerHTML = html;
+                 
+    }
+   
+    
+
+    $(document).ready( function(){
+    
+        if(user.username !== "admin") {            
+            window.location.assign('/staff/login')
+        }
+    
+        load_data();
+    
+        function load_data()
+        {
+            indexMode = viewMode[0];
+   
+            $.ajax({
+                url: '/room/all',
+                method:viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:function( data)
+                {
+                    if(data.success === false && data.statusCode === 400){
+                        alert("Token Đã hết hạn. Vui lòng đăng nhập")
+                        window.location.assign('admin/login')
+                    }
+                    _roomType =``;
+                    var html = '';     
+                    
+                   
+                    
+                    if(data.success ) {
+                        rowInPage = data.rowInPage
+                    }
+                    if(data.roomtype.length > 0) {
+                        for(let index = 0 ; index <data.roomtype.length  ; index++) {
+                            let _index = index + 1;
+                            _roomType = `<option value="` + data.roomtype[index].id+`">` 
+                                + data.roomtype[index].roomtypename + `</option>
+                            ` + _roomType;
+                        }                        
+                        _roomType += `
+                        `;                        
+                    }
+                    if(data.data && data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        let row = data.data.length;
+                        if(row > rowInPage) {
+                            row = rowInPage
+                        } 
+
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                    }              
+    
+                    
+                    indexMode = viewMode[1];
+                }
+            });
+        }
+    
+        $('#add_data').click(function(){
+            indexMode = viewMode[1];
+            document.querySelector('#sample_form div div .roomtype').innerHTML = _roomType;
+           
+            $('#dynamicModalTitle').text('Thêm Phòng');
+    
+            $('#sample_form')[0].reset();
+    
+            $('#action').val('Thêm');
+    
+            $('#actionButton').text('Thêm');
+    
+            $('#actionModal').modal('show');
+    
+        });
+    
+        $('#sample_form').on('submit', function(event){
+    
+            event.preventDefault();
+      
+            $.ajax({
+                url:'/room',
+                method:indexMode,
+                headers: {
+                    'Authorization':token
+                },
+                data:$('#sample_form').serialize(),
+                dataType:"JSON",
+                beforeSend:function(){
+                    $('#actionButton').attr('disabled', 'disabled');
+                },
+                success:function(data)
+                {
+                    if(data.success) {
+                        alert("Thêm Thành công")
+                        $('#actionButton').attr('disabled', false);                    
+                       
+    
+                        $('#actionModal').modal('hide');
+        
+                        load_data();
+                    }
+                }
+            });
+    
+        });
+    
+        $(document).on('click', '.edit', function(){
+            
+            document.querySelector('#sample_form div div .roomtype').innerHTML = _roomType; 
+            
+            var id = $(this).data('id');
+            
+    
+            $.ajax({
+                url:`/room/${id}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType:"JSON",
+                success:function(data)
+                {
+                    if(data.success) {
+                        $('#dynamicModalTitle').text('Sửa Phòng');
+    
+                        $('#action').val('Sửa');
+                
+                        $('#actionButton').text('Sửa');
+                
+                        $('#actionModal').modal('show');
+                        const temp = data.data;
+       
+                        indexMode = viewMode[2];
+                        $('#roomname').val(temp.roomname);
+                       
+                        $('#roomtype').val(temp.roomtype);
+                        $('#description').val(temp.description);
+                        $('#status').val(temp.status);
+                        $('#id').val(temp.id);
+                    } else {
+                        alert("Sửa không thành công")
+                    }
+                }
+            });
+    
+        });
+    
+        $(document).on('click', '.delete', function(){
+    
+            var id = $(this).data('id');
+    
+            if(confirm("Bạn muốn Xóa??"))
+            {
+
+                $.ajax({
+                    url:'/room',
+                    method: viewMode[3],
+                    headers: {
+                    'Authorization':token
+                    },
+                    data:{ id:id},
+                    dataType:"JSON",
+                    success:function(data)
+                    {
+
+                        
+                        if(data.success) {
+                            document.querySelector('#message').innerHTML = '<div class="alert alert-success">'+data.message+'</div>';                       
+                            load_data();
+                            setTimeout(function(){
+                                document.querySelector('#message').innerHTML = '';
+                            }, 5000);
+                        } else {
+                            alert(data.message)
+                        }
+                        
+                    }
+                });
+            }
+    
+        });
+
+        $(document).on('click', '.search', function(){
+            let search = document.getElementById('search').value;
+            $.ajax({
+                url: `/room/search`,
+                method: viewMode[1],
+                headers: {
+                    'Authorization':token
+                },
+                data: {search: search},
+                dataType : "JSON",
+                success:  function( data)
+                {
+                    if(data.data && data.data.length > 0) {
+                        pages = Math.ceil(data.data.length/rowInPage)
+                        const current = 1;
+                        lastPage = Math.ceil(data.data.length/rowInPage)
+                        const _stt = 0;
+                        var row = rowInPage;
+                        if(data.data.length < rowInPage){
+                            row = data.data.length;
+                        } 
+                        displaypages(pages, current, lastPage);
+                        displayRoom(row, _stt, data.data)
+                    } else {
+                        alert("Dữ liệu tìm kiếm không phù hợp")
+                    }
+                }
+            })
+        });
+    
+
+        $(document).on('click', '.pagesindex', function(){     
+            const search = document.getElementById("search").value       
+
+            var id = $(this).data('id');
+            id = parseInt(id);            
+            $.ajax({
+                url: `/room/page/${id-1}0/${rowInPage}`,
+                method: viewMode[0],
+                headers: {
+                    'Authorization':token
+                },
+                dataType : "JSON",
+                success:  function( data)
+                {                    
+                    let _stt = id-1 + "" + 0;
+                    _stt = parseInt(_stt)
+  
+                    displaypages(pages, id, lastPage);
+                    const row = parseInt(data.rooms.length);
+                    displayRoom(row, _stt, data.rooms)
+                }
+            })
+        });
+    });
+    
+    </script>
