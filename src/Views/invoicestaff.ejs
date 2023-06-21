@@ -224,10 +224,8 @@
         $("#totalmoney").val(`${(totalMoney).toLocaleString(undefined)} VND`);
     }
     const formatDateTime = (dateString) =>{
-        var dateParts = dateString.split(' ');
-        var timeParts = dateParts[0].split(':');
-        var dateParts = dateParts[1].split('/');
-        var jsDate = new Date(dateParts[2], dateParts[1]-1 , dateParts[0], timeParts[0], timeParts[1], timeParts[2]);        
+        let jsDate = new Date(dateString)
+            
         return jsDate        
     }
 

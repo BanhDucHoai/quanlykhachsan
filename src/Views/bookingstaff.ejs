@@ -244,22 +244,19 @@
         token = `Bearer ${user.accessToken}`
         staffid = user.id        
     }
-
     const formatDate = (d) =>{
-        var tempDateString = d.toISOString().slice(0,-8);
-        
-        var dateTimeLocal = tempDateString.replace('T', ' ');
-        
-        return dateTimeLocal        
-    }
+            let dateTimeLocalValue = (new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString()).slice(0, -1);
+            dateTimeLocalValue = dateTimeLocalValue.replace('T', ' ');
+            const tempDate = dateTimeLocalValue.slice(0,16);
+            return tempDate;
+        }
+    
     const formatDateTime = (dateString) =>{
-        var dateParts = dateString.split(' ');
-        var timeParts = dateParts[0].split(':');
-        var dateParts = dateParts[1].split('/');
-        var jsDate = new Date(dateParts[2], dateParts[1]-1 , dateParts[0], timeParts[0], timeParts[1], timeParts[2]);
-        var tempDateString = jsDate.toISOString().slice(0,-8);
-        var dateTimeLocal = tempDateString.replace('T', ' ');
-        return dateTimeLocal        
+        let tempDate1 = new Date(dateString)
+        let dateTimeLocalValue = (new Date(tempDate1.getTime() - tempDate1.getTimezoneOffset() * 60000).toISOString()).slice(0, -1);
+        dateTimeLocalValue = dateTimeLocalValue.replace('T', ' ');
+        const tempDate = dateTimeLocalValue.slice(0,16);
+        return tempDate;             
     }
     const displaypages = (pages, current, lastPage) =>{
         var firstPage = 1;
@@ -682,6 +679,7 @@
                 }
             });
         }
+        
 
         $(document).on('click', '.chooseroom',  function(){
             
@@ -712,9 +710,9 @@
                             const d = new Date()
                             const tempCheckIn = formatDate(d);
                             console.log(tempCheckIn)
-                            $('#checkindateText').val(tempCheckIn.toLocaleString())
-                            $('#checkindate').val(tempCheckIn.toLocaleString())
-                                       
+                            $('#checkindateText').val(tempCheckIn)
+                            $('#checkindate').val(tempCheckIn)
+                            $('#checkindate').prop('disabled', true);             
                             indexMode = viewMode[1];
                         }            
                     }                    
@@ -754,19 +752,15 @@
                         if(data.book && data.book.length >0) {
                             let temp = data.book[0];
                             maxCustomer = temp.maxcustomer
-                            
-                            
                             var  tempcheckInDate = temp.checkindate; 
                             var  tempcheckOutDate = temp.checkoutdate; 
                             var checkInDate = formatDateTime(tempcheckInDate)
                             var checkOutDate = formatDateTime(tempcheckOutDate)
-                            console.log(checkOutDate)
-                            console.log(checkInDate)
                             $('#roomid').val(temp.roomid)                                    
                             $('#paymentid').val(temp.paymentid)
-                            $('#checkoutdate').val(checkOutDate.toLocaleString())
-                            $('#checkindate').val(checkInDate.toLocaleString())
-                            $('#checkindateText').val(checkInDate.toLocaleString())
+                            $('#checkoutdate').val(checkOutDate)
+                            $('#checkindate').val(checkInDate)
+                            $('#checkindateText').val(checkInDate)
                             $('#checkindate').prop('disabled', true);   
                             $('#roomid').prop('disabled', true);                    
                             $('#bookid').val(bookid)
@@ -1189,7 +1183,7 @@
             id = parseInt(id);
                        
             $.ajax({
-                url: `/room/pagebystaff/${id-1}0/${rowInPage}`,
+                url: `/room/pagebystaff/${id-1}/${rowInPage}`,
                 method: viewMode[0],
                 headers: {
                     'Authorization':token,

@@ -13,7 +13,7 @@ const getRoomByIdFromTo = async (request, response) =>{
 
 	try {
 		const {id, rowinpage} = request.params;
-			
+		console.log(id, rowinpage)	
 			console.log("getRoomByIdFromTo")
 			var queryRoom = `SELECT 
 			main.id, main.roomname, roo.price AS price, main.description,
@@ -51,9 +51,10 @@ const getRoomByIdFromTo = async (request, response) =>{
 const getRoomByIdFromToByStaff = async (request, response) =>{
 
 	try {
-		const {id, rowinpage} = request.params;
+		var {id, rowinpage} = request.params;
+		id = id * 12;
 		console.log("getRoomByIdFromToByStaff")
-
+		console.log(id, rowinpage)
 		var queryRoom = `SELECT main.id, main.roomname, roo.price AS price, 
 		main.description, roo.roomtypename, roo.price, main.status, 
 		sta.statusname AS statusname, roo.maxcustomer
